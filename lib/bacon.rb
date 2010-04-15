@@ -60,23 +60,42 @@ module Bacon
     end
   end
 
+  module Color
+    def self.method_missing( color_name, *args )
+      paint( color_name, args.first )
+    end
+
+    def self.color( color )
+      color_list = { :clear => 0, :red => 31, :green => 32, :yellow => 33 }
+      "\e[#{color_list[color.to_sym]}m"
+    end
+
+    def self.paint( color_name, text )
+      color(color_name) + text + color(:clear)
+    end
+  end
+
   module TestUnitOutput
     def handle_specification(name)  yield  end
 
     def handle_requirement(description)
       error = yield
       if error.empty?
-        print "."
+        print Color.green(".")
       else
-        print error[0..0]
+        print Color.red(error[0..0])
       end
     end
 
     def handle_summary
-      puts "", "Finished in #{Time.now - @timer} seconds."
-      puts ErrorLog  if Backtraces
-      puts "%d tests, %d assertions, %d failures, %d errors" %
+      color = :green
+      color = :yellow if Counter[:errors] > 0
+      color = :red if Counter[:failed] > 0
+      puts "", Color.paint(color, "Finished in #{Time.now - @timer} seconds.")
+      puts ErrorLog if Backtraces
+      summary = "%d tests, %d assertions, %d failures, %d errors" %
         Counter.values_at(:specifications, :requirements, :failed, :errors)
+      puts Color.paint( color, summary )
     end
   end
 
